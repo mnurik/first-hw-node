@@ -1,7 +1,7 @@
-import { User, Product } from "./models";
+import DirWatcher from "./dirwatcher";
+import Importer from "./importer";
 
-new User();
-new Product();
+new DirWatcher();
+const importer = new Importer();
 
-const configs = require('./config/config.json');
-console.log(configs.name);
+importer.import('./data').then(importedData => console.log(importedData));
