@@ -1,15 +1,22 @@
+import fs from 'fs';
+import csv from 'csvtojson';
+import { promisify } from 'util';
+
+const readAsync = promisify(fs.readFile);
+
 export default class Importer {
-  constructor() {
-    watcher('​dirwatcher:changed​');
+  constructor() { }
+
+  listener(event, callback) {
+    event.on('dirwatcher:changed', callback);
   }
 
-  import(path) {
-    return new Promise(resolve => {
-      resolve(getDataFromPath(path));
-    });
+  import(csvFilePath) {
+    // return csv().fromFile(`./data/${csvFilePath}`);
+    return readAsync(`./data/${csvFilePath}`, 'utf8');
   }
 
-  importSync(path) {
-    return getDataFromPath(path);
+  importSync(csvFilePath) {
+    return require(path);
   }
 }
