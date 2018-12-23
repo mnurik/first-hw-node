@@ -1,5 +1,6 @@
 import fs from 'fs';
 import EventEmitter from 'events';
+import { eventName } from './config/config.json';
 
 export default class DirWatcher {
   constructor() {
@@ -7,11 +8,14 @@ export default class DirWatcher {
   }
 
   watch(path, delay) {
-    setInterval(() => {
-      fs.readdir(path, {}, (eventType, files) => {
-        this.fileChangeEventEmitter.emit('dirwatcher:changed', files);
-      });
-    }, delay);
+    (function recursiveTimeout(context) {
+      setTimeout(() => {
+        fs.readdir(path, {}, (eventType, files) => {
+          context.fileChangeEventEmitter.emit(eventName, files);
+        });
+        recursiveTimeout(context);
+      }, delay);
+    })(this);
     // fs.watch(path, {}, (eventType, filename) => {
     //   if (filename) {
     //     this.fileChangeEventEmitter.emit(eventType, filename);

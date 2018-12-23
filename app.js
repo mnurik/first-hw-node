@@ -1,13 +1,14 @@
 import DirWatcher from "./dirwatcher";
 import Importer from "./importer";
+import { path, delay } from "./config/config.json";
 
 const dirwatcher = new DirWatcher();
-dirwatcher.watch('./data', 1000);
+dirwatcher.watch(path, delay);
 
 const importer = new Importer();
 const callback = files => {
-  return Promise.all(files.map(file => importer.import(file)))
-    .then(value => console.log(value))
+  return Promise.all(files.map(importer.import))
+    .then(console.log)
     .catch(console.error);
 }
 importer.listener(dirwatcher.fileChangeEventEmitter, callback);
