@@ -5,6 +5,7 @@
   "main": "app.js",
   "scripts": {
     "start": "nodemon --exec babel-node ./app.js",
+    "repl": "node ./utils/streams.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -21,6 +22,7 @@
     "nodemon": "^1.18.7"
   },
   "dependencies": {
+    "commander": "^2.19.0",
     "csvtojson": "^2.0.8"
   }
 }
