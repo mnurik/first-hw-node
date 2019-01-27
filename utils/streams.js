@@ -1,20 +1,28 @@
 #!/usr/bin/env node
 const fs = require('fs');
+const repl = require('repl');
 const program = require('commander');
 const config = require('./../config/config.json');
 
-const actionHandler = (name, value) => functions[name](value);
-
 const functions = {
-  reverse: (str) => console.log(str.split('').reverse().join('')),
-  transform: (str) => console.log(str.split('').join('-')),
-  outputFile: (fileName) => fs.readFile(`./${config.path}${fileName}`, 'utf8', (err, data) => {
-    if (err) console.log(err);
-    console.log(data);
-  })
+  reverse: (str) => str.split('').reverse().join(''),
+  transform: (str) => str.toUpperCase(),
+  outputFile: (fileName) => fs.createReadStream(`./${config.path}${fileName}`)
+}
+
+const defineAction = name => {
+  repl.start({
+    prompt: `${name} actions: `,
+    writer: functions[name]
+  });
+}
+
+const defineFile = fileName => {
+
 }
 
 program
   .version('0.1.0')
-  .option('-a, --action <name> [value]', 'A function', actionHandler, 'test.csv')
+  .option('-a, --action <name>', 'A function', defineAction)
+  .option('-f, --file <name>', 'A file name', defineFile)
   .parse(process.argv);
