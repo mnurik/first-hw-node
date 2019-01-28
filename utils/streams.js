@@ -10,15 +10,26 @@ const functions = {
   outputFile: (fileName) => fs.createReadStream(`./${config.path}${fileName}`)
 }
 
+let fileFunction = () => {};
+
 const defineAction = name => {
-  repl.start({
-    prompt: `${name} actions: `,
-    writer: functions[name]
-  });
+  if (['reverse', 'transform'].includes(name)) {
+    repl.start({
+      prompt: `${name} actions: `,
+      writer: functions[name]
+    });
+  }
+  else {
+    fileFunction = functions[name];
+  }
 }
 
 const defineFile = fileName => {
-
+  repl.start({
+    prompt: `File actions: `,
+    input: fileFunction(fileName),
+    output: process.stdout
+  });
 }
 
 program
