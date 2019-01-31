@@ -1,33 +1,18 @@
 #!/usr/bin/env node
 const fs = require('fs');
-const repl = require('repl');
 const program = require('commander');
 const config = require('./../config/config.json');
+const csv = require('csvtojson');
 
 const functions = {
-  reverse: (str) => str.split('').reverse().join(''),
-  transform: (str) => str.toUpperCase(),
-  outputFile: (fileName) => fs.createReadStream(`./${config.path}${fileName}`)
-}
-
-const defineAction = name => {
-  if (['reverse', 'transform'].includes(name)) {
-    repl.start({
-      prompt: `${name} actions: `,
-      writer: functions[name]
-    });
+  reverse: str => str.split('').reverse().join(''),
+  transform: str => str.toUpperCase(),
+  outputFile: readStream => readStream.on("data", console.log),
+  convertFromFile: readStream => readStream.pipe(csv()).then(console.log),
+  convertToFile: (readStream, fileName) => {
+    const writeStream = fs.createWriteStream(`./${config.path}${fileName.replace("csv", "json")}`, "utf8");
+    readStream.pipe(csv()).pipe(writeStream)
   }
-  else {
-    fileFunction = functions[name]; //outputFile
-  }
-}
-
-const defineFile = fileName => {
-  repl.start({
-    prompt: `File actions: `,
-    input: fileFunction(fileName),
-    output: process.stdout
-  });
 }
 
 const actionsFactory = registry => name => {
@@ -39,19 +24,29 @@ const actionsFactory = registry => name => {
 }
 
 const getActionByName = actionsFactory(functions);
-
 // 1. check if file exists
 // 2. check if file is readable
 // 3. create R stream
 // 4. return R stream
 openFile = fileName => {
-  return // fileStream
+  return {
+    name: fileName,
+    stream: fs.createReadStream(`./${config.path}${fileName}`, "utf8")
+  }
 }
 
 program
   .version('0.1.0')
-  .option('-a, --action <name> [someText]', 'A function', getActionByName2, "eval")
+  .option('-a, --action <name> [someText]', 'A function', getActionByName)
   .option('-f, --file <fileName>', 'A file name', openFile)
   .parse(process.argv);
 
-console.log(program.args);
+if (program.action) {
+  if (!program.file && program.args[0]) {
+    console.log(program.action(program.args[0]));
+  }
+
+  if (program.file) {
+    program.action(program.file.stream, program.file.name);
+  }
+}
