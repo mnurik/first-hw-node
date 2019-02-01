@@ -1,6 +1,6 @@
 import fs from 'fs';
 import EventEmitter from 'events';
-import { eventName } from './config/config.json';
+import { eventName } from '../config/config.json';
 
 export default class DirWatcher {
   constructor() {
@@ -15,7 +15,7 @@ export default class DirWatcher {
         });
         recursiveTimeout(context);
       }, delay);
-    })(this);
+    }(this));
     // fs.watch(path, {}, (eventType, filename) => {
     //   if (filename) {
     //     this.fileChangeEventEmitter.emit(eventType, filename);
