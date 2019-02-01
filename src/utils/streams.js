@@ -2,13 +2,14 @@
 const fs = require('fs');
 const program = require('commander');
 const csv = require('csvtojson');
+const through2 = require('through2');
 const config = require('../../config/config.json');
 
-const functions = {
-  reverse: str => str.split('').reverse().join(''),
-  transform: str => str.toUpperCase(),
-  outputFile: readStream => readStream.on('data', console.log),
-  convertFromFile: readStream => readStream.pipe(csv()).then(console.log),
+const actionList = {
+  reverse: () => process.stdin.pipe(through2(str => str.toString().split('').reverse().join(''))).pipe(process.stdout),
+  transform: () => process.stdin.pipe(through2(str => str.toUpperCase())).pipe(process.stdout),
+  outputFile: readStream => readStream.pipe(process.stdout),
+  convertFromFile: readStream => readStream.pipe(csv()).pipe(process.stdout),
   convertToFile: (readStream, fileName) => {
     const writeStream = fs.createWriteStream(`./${config.path}${fileName.replace('csv', 'json')}`, 'utf8');
     readStream.pipe(csv()).pipe(writeStream);
@@ -17,34 +18,35 @@ const functions = {
 
 const actionsFactory = registry => (name) => {
   if (typeof registry[name] !== 'function') {
-    throw ReferenceError(`Unknown action "${name}"`);
+    throw new ReferenceError(`Unknown action "${name}"`);
   }
 
   return registry[name];
 };
 
-const getActionByName = actionsFactory(functions);
-// 1. check if file exists
-// 2. check if file is readable
-// 3. create R stream
-// 4. return R stream
-const openFile = fileName => ({
-  name: fileName,
-  stream: fs.createReadStream(`./${config.path}${fileName}`, 'utf8'),
-});
+const getActionByName = actionsFactory(actionList);
+
+const openFile = (fileName) => {
+  const path = `./${config.path}${fileName}`;
+
+  if (!fs.existsSync(path)) {
+    throw new Error(`${fileName} file doesn't exist`);
+  }
+  const reader = fs.createReadStream(path, 'utf8');
+
+  reader.on('readable', () => {
+    program.action(reader, fileName);
+  });
+};
 
 program
-  .version('0.1.0')
+  .version(config.version)
   .option('-a, --action <name> [someText]', 'A function', getActionByName)
   .option('-f, --file <fileName>', 'A file name', openFile)
   .parse(process.argv);
 
 if (program.action) {
-  if (!program.file && program.args[0]) {
-    console.log(program.action(program.args[0]));
-  }
-
-  if (program.file) {
-    program.action(program.file.stream, program.file.name);
+  if (!program.file && program.args.length) {
+    program.action(program.args);
   }
 }
