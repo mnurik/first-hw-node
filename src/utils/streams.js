@@ -14,6 +14,9 @@ const actionList = {
     const writeStream = fs.createWriteStream(`./${config.path}${fileName.replace('csv', 'json')}`, 'utf8');
     readStream.pipe(csv()).pipe(writeStream);
   },
+  cssBundler: (path) => {
+    console.log(path);
+  }
 };
 
 const actionsFactory = registry => (name) => {
@@ -43,10 +46,14 @@ program
   .version(config.version)
   .option('-a, --action <name> [someText]', 'A function', getActionByName)
   .option('-f, --file <fileName>', 'A file name', openFile)
+  .option('-p, --path <path>', 'A file name')
   .parse(process.argv);
 
 if (program.action) {
   if (!program.file && program.args.length) {
     program.action(program.args);
+  }
+  if (program.path) {
+    program.action(program.path);
   }
 }
