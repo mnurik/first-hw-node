@@ -2,6 +2,9 @@
   "name": "Node.js Homework Application",
   "config": "0.1.0",
   "delay": 1000,
-  "path": "data/",
-  "eventName": "dirwatcher:changed"
+  "eventName": "dirwatcher:changed",
+  "path": {
+    "root": "src/",
+    "csv": "data/"
+  }
 }

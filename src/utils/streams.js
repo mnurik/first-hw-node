@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 const fs = require('fs');
 const program = require('commander');
 const csv = require('csvtojson');
@@ -11,12 +12,18 @@ const actionList = {
   outputFile: readStream => readStream.pipe(process.stdout),
   convertFromFile: readStream => readStream.pipe(csv()).pipe(process.stdout),
   convertToFile: (readStream, fileName) => {
-    const writeStream = fs.createWriteStream(`./${config.path}${fileName.replace('csv', 'json')}`, 'utf8');
+    const writeStream = fs.createWriteStream(`./${config.path.csv}${fileName.replace('csv', 'json')}`, 'utf8');
     readStream.pipe(csv()).pipe(writeStream);
   },
   cssBundler: (path) => {
-    console.log(path);
-  }
+    // fs.createReadStream('​https://epa.ms/nodejs18-hw3-css​​​​').pipe(process.stdout);
+    fs.readdir(path, (err, files) => {
+      if (err) console.log(err);
+      files.forEach((file) => {
+        fs.createReadStream(`${path}/${file}`).pipe(fs.createWriteStream(`${path}/bundle.css`));
+      });
+    });
+  },
 };
 
 const actionsFactory = registry => (name) => {
@@ -30,15 +37,29 @@ const actionsFactory = registry => (name) => {
 const getActionByName = actionsFactory(actionList);
 
 const openFile = (fileName) => {
-  const path = `./${config.path}${fileName}`;
+  const path = `./${config.path.csv}${fileName}`;
 
-  if (!fs.existsSync(path)) {
-    throw new Error(`${fileName} file doesn't exist`);
-  }
-  const reader = fs.createReadStream(path, 'utf8');
+  fs.stat(path, (err) => {
+    if (err) {
+      console.error(`${fileName} file doesn't exist`);
+    } else {
+      const reader = fs.createReadStream(path, 'utf8');
+      reader.on('readable', () => {
+        program.action(reader, fileName);
+      });
+    }
+  });
+};
 
-  reader.on('readable', () => {
-    program.action(reader, fileName);
+const openLink = (folderName) => {
+  const path = `${config.path.root}${folderName}`;
+
+  fs.stat(path, (err) => {
+    if (err) {
+      console.error('Folder does not exist');
+    } else {
+      program.action(path);
+    }
   });
 };
 
@@ -46,14 +67,9 @@ program
   .version(config.version)
   .option('-a, --action <name> [someText]', 'A function', getActionByName)
   .option('-f, --file <fileName>', 'A file name', openFile)
-  .option('-p, --path <path>', 'A file name')
+  .option('-p, --path [path]', 'A file name', openLink, 'css')
   .parse(process.argv);
 
-if (program.action) {
-  if (!program.file && program.args.length) {
-    program.action(program.args);
-  }
-  if (program.path) {
-    program.action(program.path);
-  }
+if (program.action && !program.file && program.args.length) {
+  program.action(program.args);
 }
