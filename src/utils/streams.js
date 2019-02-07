@@ -6,9 +6,19 @@ const csv = require('csvtojson');
 const through2 = require('through2');
 const config = require('../../config/config.json');
 
+function reverseHandler(str, enc, callback) {
+  this.push(str.toString().split('').reverse().join(''));
+  return callback();
+}
+
+function transformHandler(str, enc, callback) {
+  this.push(str.toString().toUpperCase());
+  return callback();
+}
+
 const actionList = {
-  reverse: () => process.stdin.pipe(through2(str => str.toString().split('').reverse().join(''))).pipe(process.stdout),
-  transform: () => process.stdin.pipe(through2(str => str.toUpperCase())).pipe(process.stdout),
+  reverse: () => process.stdin.pipe(through2(reverseHandler)).pipe(process.stdout),
+  transform: () => process.stdin.pipe(through2(transformHandler)).pipe(process.stdout),
   outputFile: readStream => readStream.pipe(process.stdout),
   convertFromFile: readStream => readStream.pipe(csv()).pipe(process.stdout),
   convertToFile: (readStream, fileName) => {
@@ -16,15 +26,51 @@ const actionList = {
     readStream.pipe(csv()).pipe(writeStream);
   },
   cssBundler: (path) => {
-    // fs.createReadStream('​https://epa.ms/nodejs18-hw3-css​​​​').pipe(process.stdout);
+    const writeStream = fs.createWriteStream(`${path}/bundle.css`);
     fs.readdir(path, (err, files) => {
       if (err) console.log(err);
-      files.forEach((file) => {
-        fs.createReadStream(`${path}/${file}`).pipe(fs.createWriteStream(`${path}/bundle.css`));
-      });
+      
+      fs.createReadStream(`${path}/${file}`).pipe();
     });
   },
 };
+
+const writeTo = writeStream => readStream => new Promise((resolve, reject) => {
+  writeStream.on('finish', resolve); // ??? writing of read part finished
+  readStream.pipe(writeStream);
+});
+
+const sequenceRun = promisedFunctions => promisedFunctions.reduce(
+  (prevPromise, func) => prevPromise.then(result => func().then(res2 => result.concat(res2))),
+  Promise.resolve([]),
+);
+
+const writeToBundle = writeTo(bundleFile);
+
+fileWriters = cssFiles
+  .map(file => () => writeToBundle(file))
+  .reduce(
+    (res, writer) => res.concat(
+      writer,
+      writeComment,
+    ),
+    [],
+    )
+
+
+
+sequenceRun(fileWriters)
+  .then(() => writeToBundle(epamCssFile))
+  .then(OK)
+  .catch(KO)
+
+
+const f1 = arg => () => Promise.resolve(arg);
+const f2 = arg => () => Promise.resolve(arg);
+
+sequenceRun([
+  f1(1), f2(2), f1(3),
+]);
 
 const actionsFactory = registry => (name) => {
   if (typeof registry[name] !== 'function') {
@@ -70,6 +116,6 @@ program
   .option('-p, --path [path]', 'A file name', openLink, 'css')
   .parse(process.argv);
 
-if (program.action && !program.file && program.args.length) {
-  program.action(program.args);
+if (program.action && !program.file) {
+  program.action();
 }
